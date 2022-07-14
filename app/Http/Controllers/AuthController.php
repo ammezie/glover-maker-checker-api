@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -30,7 +31,7 @@ class AuthController extends Controller
             'first_name' => $validatedData['first_name'] ?? null,
             'last_name' => $validatedData['last_name'] ?? null,
             'email' => $validatedData['email'],
-            'password' => bcrypt($validatedData['password']),
+            'password' => Hash::make($validatedData['password']),
             'is_admin' => true,
         ]);
 
@@ -62,14 +63,21 @@ class AuthController extends Controller
 
         $user = User::where('email', $validatedData['email'])->first();
 
+        // return $user;
+
         // Ensure user supplied valid credentails
-        if (!$user || !Hash::check($validatedData['password'], $user->password)) {
+        if (!Auth::attempt([
+            'email' => $validatedData['email'],
+            'password' => $validatedData['password'],
+            'is_admin' => 1,
+        ])) {
             return response()->json([
                 'status' => false,
                 'message' => 'Invalid credentials.',
                 'data' => null,
             ], 401);
         }
+
 
         // Create access token
         $token = $user->createToken('api_token');
